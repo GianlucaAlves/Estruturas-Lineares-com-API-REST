@@ -1,19 +1,21 @@
-import express from 'express';
+import express, {Request, Response, NextFunction} from 'express';
 import LinearStructure from './models/LinearStructure';
 import { listStructure, queueInstance, stackInstance } from './models/instances';
 import listRouter from './routes/listRoutes';
 import queueRouter from './routes/queueRoutes';
 import stackRouter from './routes/stackRoutes';
+import cors from 'cors';
 
 const app = express();
 
+ app.use(cors());
 app.use(express.json());
 
 app.use(stackRouter);
 app.use(queueRouter);
 app.use(listRouter);
 
-app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, _req: Request, res: Response, next:NextFunction) => {
     if (err instanceof SyntaxError && 'body' in err) {
         return res.status(400).json({
             success: false,
