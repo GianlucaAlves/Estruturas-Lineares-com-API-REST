@@ -1,6 +1,5 @@
-import { get } from "./httpClient";
-import { post } from "./httpClient";
-import { del } from "./httpClient";
+import { get, post, del } from "./httpClient";
+
 
 
 export async function getPilha(): Promise<unknown[]>{
