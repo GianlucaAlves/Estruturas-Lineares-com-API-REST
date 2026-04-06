@@ -63,12 +63,7 @@ function PilhaPage() {
         await deletePilha();
         const dados = await getPilha();
         setItens(dados);
-        try{   
-            const t = await getTopo();
-            setTopo(t);
-        }catch{
-            setTopo(null);
-        }    
+        setTopo(null); 
       }}>Deletar pilha</button>
       
       
