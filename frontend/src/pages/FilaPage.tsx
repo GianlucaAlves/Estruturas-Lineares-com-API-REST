@@ -84,8 +84,21 @@ function FilaPage() {
                 setFrente(null);
             }            
           }}>Deletar frente</button>
-          <button>Deleter fila</button>
-          <button>Ver frente</button>
+          <button onClick={async () => {
+            await deleteFila();
+            const dados = await getFila();
+            setItens(dados);
+            setFrente(null);
+          }}>Deleter fila</button>
+          <button onClick={async () => {
+           try{
+            const frente = await getFrente();
+            setFrente(frente);
+           }catch{
+            setFrente(null);
+           }           
+          }}>Ver frente</button>
+          {frente !== null && <div>Frente: {String(frente)}</div> } 
         </div>
       </section>
     </div>
