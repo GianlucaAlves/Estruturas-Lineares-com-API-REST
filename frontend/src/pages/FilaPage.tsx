@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
-  getFila,
   addFila,
-  deleteFila,
   deleteFrente,
+  deleteFila,
+  getFila,
   getFrente,
 } from "../services/filaService";
 
@@ -11,95 +11,141 @@ function FilaPage() {
   const [itens, setItens] = useState<unknown[]>([]);
   const [valor, setValor] = useState("");
   const [frente, setFrente] = useState<unknown | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refreshFila() {
+    const dados = await getFila();
+    setItens(dados);
+    try {
+      const f = await getFrente();
+      setFrente(f);
+    } catch {
+      setFrente(null);
+    }
+  }
+
+  function notifyStatsUpdate() {
+    window.dispatchEvent(new Event("estrutura-atualizada"));
+  }
 
   useEffect(() => {
-    async function fetchItens() {
-      const dados = await getFila();
-      setItens(dados);
-    }
-    fetchItens();
+    refreshFila().catch((err) => {
+      setError(err instanceof Error ? err.message : String(err));
+    });
   }, []);
 
+  async function runAction(action: () => Promise<void>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      await refreshFila();
+      notifyStatsUpdate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div>
-      <h2>Fila Page</h2>
-      <section>
-        <ul
-          style={{
-            display: "flex",
-            gap: 10,
-            listStyle: "none",
-            padding: "10px 12px",
-          }}
+    <div className="page page-queue">
+      <div className="page-header">
+        <h2>Fila</h2>
+        <span className="hint-chip">FIFO</span>
+      </div>
+
+      <section className="panel">
+        <div className="structure-title">Visual da fila</div>
+        <div className="queue-flow-labels">
+          <span>FRENTE</span>
+          <span>FIM</span>
+        </div>
+        <div
+          className="queue-track"
+          role="img"
+          aria-label="Fila horizontal com frente sinalizada"
         >
-          {itens.slice().reverse().map((item, idx) => (
-            <li
-              style={{
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                padding: "8px 16px",
-                background:  "#fff", // destaca a frente
-                fontWeight:"bold",
-              }}
-              key={idx}
+          {itens.length === 0 && <div className="empty-state">Fila vazia</div>}
+          {itens.map((item, idx) => (
+            <div
+              key={`${String(item)}-${idx}`}
+              className={`queue-item ${idx === 0 ? "queue-front" : ""}`}
             >
-              {String(item)}
-              
-            </li>
+              <span>{String(item)}</span>
+              {idx === 0 && <span className="marker">FRENTE</span>}
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
 
-      <section>
+      <section className="panel controls-grid">
         <form
+          className="inline-form"
           onSubmit={async (e) => {
             e.preventDefault();
-            await addFila(valor);
-            setValor("");
-            const dados = await getFila();
-            setItens(dados);
-            try {
-              const frente = await getFrente();
-              setFrente(frente);
-            } catch {
-              setFrente(null);
-            }
+            if (!valor.trim()) return;
+            await runAction(async () => {
+              await addFila(valor.trim());
+              setValor("");
+            });
           }}
         >
           <input
+            className="text-input"
             value={valor}
             onChange={(e) => setValor(e.target.value)}
-          ></input>
-          <button type="submit">Adicionar</button>
+            placeholder="Item para enfileirar"
+            disabled={busy}
+          />
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            Enfileirar
+          </button>
         </form>
-        <div>
-          <button onClick={async () => {
-            await deleteFrente();
-            const dados = await getFila();
-            setItens(dados);
-            try{
-                const frente = await getFrente();
-                setFrente(frente);
-            }catch{
+
+        <div className="actions-row">
+          <button
+            className="btn"
+            disabled={busy}
+            onClick={() => runAction(async () => deleteFrente())}
+          >
+            Remover frente
+          </button>
+          <button
+            className="btn"
+            disabled={busy}
+            onClick={() => runAction(async () => deleteFila())}
+          >
+            Limpar fila
+          </button>
+          <button
+            className="btn"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                const f = await getFrente();
+                setFrente(f);
+              } catch (err) {
                 setFrente(null);
-            }            
-          }}>Deletar frente</button>
-          <button onClick={async () => {
-            await deleteFila();
-            const dados = await getFila();
-            setItens(dados);
-            setFrente(null);
-          }}>Deleter fila</button>
-          <button onClick={async () => {
-           try{
-            const frente = await getFrente();
-            setFrente(frente);
-           }catch{
-            setFrente(null);
-           }           
-          }}>Ver frente</button>
-          {frente !== null && <div>Frente: {String(frente)}</div> } 
+                setError(err instanceof Error ? err.message : String(err));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Consultar frente
+          </button>
         </div>
+
+        <div className="result-strip">
+          <strong>Frente atual:</strong>{" "}
+          {frente === null ? "(vazia)" : String(frente)}
+        </div>
+        {busy && <div className="status-info">Processando operacao...</div>}
+        {error && <div className="status-error">{error}</div>}
       </section>
     </div>
   );

@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend-TPI
+      dockerfile: Dockerfile
+    container_name: estruturas-backend
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    container_name: estruturas-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
